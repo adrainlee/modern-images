@@ -1,0 +1,13 @@
+# 忽略uploads目录中的所有文件
+uploads/*
+uploads/api/*
+
+# 不忽略.gitkeep文件，用于保留目录结构
+!uploads/.gitkeep
+!uploads/api/.gitkeep
+
+# Node.js相关
+node_modules/
+npm-debug.log
+yarn-debug.log
+yarn-error.log 

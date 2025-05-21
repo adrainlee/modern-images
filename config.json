@@ -1,9 +1,9 @@
 {
   "auth": {
-    "isConfigured": false,
-    "username": "",
-    "hashedPassword": "",
-    "salt": ""
+    "isConfigured": true,
+    "username": "admin",
+    "hashedPassword": "074404ce6f983fc02230e57bbbd96e8f4ecc38892dbc4b92a30eb892d577d35ba3b4e49b41c4f73aec6cc67c3463f8dfa55c38b482d93cecaf0606e7862a01e9",
+    "salt": "55e88e72cf3c0c6b1a8ab6e2e61ac4a0"
   },
   "api": {
     "enabled": true,
