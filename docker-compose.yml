@@ -1,0 +1,23 @@
+version: '3'
+
+services:
+  modern-images:
+    build: .
+    container_name: modern-images
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - UID=1000
+      - GID=1000
+    volumes:
+      - ./uploads:/app/uploads
+      - ./config.json:/app/config.json
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
