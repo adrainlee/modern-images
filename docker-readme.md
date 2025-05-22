@@ -13,7 +13,13 @@
 
 1. 克隆或下载项目代码到本地
 
-2. 在项目根目录下运行：
+2. 创建配置文件：
+```bash
+# 创建配置文件（首次部署）
+cp config.sample.json config.json
+```
+
+3. 在项目根目录下运行：
 
 ```bash
 # 首次运行前，确保创建uploads目录并设置正确权限
@@ -24,7 +30,7 @@ chmod 777 uploads  # 或者使用更精细的权限设置
 docker-compose up -d
 ```
 
-3. 访问 http://localhost:3000 使用应用
+4. 访问 http://localhost:3000 使用应用
 
 ### 使用 Dockerfile
 
@@ -40,6 +46,9 @@ docker build -t modern-images .
 # 首次运行前，确保创建uploads目录并设置正确权限
 mkdir -p uploads
 chmod 777 uploads  # 或者使用更精细的权限设置
+
+# 创建配置文件（如果尚未创建）
+cp config.sample.json config.json
 
 # 启动容器
 docker run -d -p 3000:3000 \
@@ -63,6 +72,14 @@ docker run -d -p 3000:3000 \
 
 - `PORT`: 应用监听端口（默认：3000）
 - `NODE_ENV`: Node.js 环境（默认：production）
+
+## 配置文件说明
+
+`config.json` 文件包含应用的配置信息，包括认证信息和API设置。该文件不会被提交到Git仓库，您需要在每个部署环境中手动创建或复制此文件。
+
+首次部署时：
+1. 复制示例配置：`cp config.sample.json config.json`
+2. 访问 http://localhost:3000/setup 进行初始设置
 
 ## 常用命令
 

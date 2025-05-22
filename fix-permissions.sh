@@ -15,24 +15,11 @@ echo "当前用户ID: $CURRENT_USER, 组ID: $CURRENT_GROUP"
 
 echo "注意: 不尝试修改权限，而是修改Docker配置以适应当前权限"
 
-# 如果config.json不存在，创建一个默认的
+# 如果config.json不存在，从示例配置创建
 if [ ! -f config.json ]; then
-  echo "创建默认config.json..."
-  cat > config.json << EOF
-{
-  "auth": {
-    "isConfigured": false,
-    "username": "",
-    "hashedPassword": "",
-    "salt": ""
-  },
-  "api": {
-    "enabled": true,
-    "tokens": [],
-    "defaultFormat": "original"
-  }
-}
-EOF
+  echo "从示例配置创建config.json..."
+  cp config.sample.json config.json
+  echo "请注意: 您需要访问 http://localhost:3000/setup 进行初始设置"
 fi
 
 # 创建或修改docker-compose.yml，添加用户ID映射

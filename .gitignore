@@ -6,6 +6,9 @@ uploads/api/*
 !uploads/.gitkeep
 !uploads/api/.gitkeep
 
+# 配置文件（包含敏感信息）
+config.json
+
 # Node.js相关
 node_modules/
 npm-debug.log

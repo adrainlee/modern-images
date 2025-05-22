@@ -1,0 +1,13 @@
+{
+  "auth": {
+    "isConfigured": false,
+    "username": "",
+    "hashedPassword": "",
+    "salt": ""
+  },
+  "api": {
+    "enabled": true,
+    "tokens": [],
+    "defaultFormat": "original"
+  }
+} 

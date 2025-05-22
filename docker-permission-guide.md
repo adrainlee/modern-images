@@ -56,7 +56,14 @@ volumes:
   modern_images_data:
 ```
 
-2. 启动容器：
+2. 确保config.json文件存在：
+
+```bash
+# 如果尚未创建配置文件，从示例配置创建
+cp config.sample.json config.json
+```
+
+3. 启动容器：
 
 ```bash
 docker compose up -d
@@ -74,4 +81,6 @@ docker compose up -d
 
 ```bash
 sudo chcon -Rt container_file_t uploads
-``` 
+```
+
+4. config.json 文件包含敏感信息，不会被提交到Git仓库。每次部署时，您需要从config.sample.json创建此文件。 
