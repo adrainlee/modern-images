@@ -1,9 +1,13 @@
 # 单阶段构建，确保Sharp在正确的环境中编译
 FROM node:18-alpine
 
-# 创建非特权用户
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
+# 构建参数
+ARG UID=1000
+ARG GID=1000
+
+# 创建用户组和用户，使用传入的UID/GID
+RUN addgroup -g ${GID} -S nodejs && \
+    adduser -S nodejs -u ${UID} -G nodejs
 
 # 安装运行时依赖和构建工具
 RUN apk add --no-cache vips vips-dev su-exec dumb-init python3 make g++ && \
@@ -23,16 +27,14 @@ COPY . .
 # 只清理构建工具，保留vips和vips-dev以支持Sharp运行
 RUN apk del python3 make g++
 
-# 创建必要目录
+# 创建必要目录并设置权限
 RUN mkdir -p uploads/api && \
     chown -R nodejs:nodejs /app
 
-# 复制启动脚本
-COPY --chown=nodejs:nodejs docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# 设置非root用户
-USER nodejs
+# 复制启动脚本并设置权限
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh && \
+    chown nodejs:nodejs /usr/local/bin/docker-entrypoint.sh
 
 # 暴露端口
 EXPOSE 3000
@@ -41,6 +43,6 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
-# 使用dumb-init作为PID 1
-ENTRYPOINT ["/usr/bin/dumb-init", "--"]
-CMD ["/usr/local/bin/docker-entrypoint.sh", "node", "server.js"] 
+# 使用自定义entrypoint
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["node", "server.js"] 

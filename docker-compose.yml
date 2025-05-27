@@ -1,8 +1,13 @@
+version: '3.8'
+
 services:
   modern-images:
     build:
       context: .
       dockerfile: Dockerfile
+      args:
+        - UID=${UID:-1000}
+        - GID=${GID:-1000}
     container_name: modern-images
     restart: unless-stopped
     
@@ -14,35 +19,13 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=3000
-      # 使用随机生成的session secret
-      - SESSION_SECRET_FILE=/run/secrets/session_secret
-      - REDIS_URL=redis://redis:6379
+      - UID=${UID:-1000}
+      - GID=${GID:-1000}
     
-    # 资源限制
-    deploy:
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 512M
-        reservations:
-          cpus: '0.25'
-          memory: 128M
-    
-    # 安全配置
-    security_opt:
-      - no-new-privileges:true
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - SETUID
-      - SETGID
-    
-    # 卷挂载
+    # 卷挂载 - 使用绑定挂载以避免权限问题
     volumes:
-      - uploads_data:/app/uploads
-      - ./config.json:/app/config.json:ro
-      - session_secret:/run/secrets/session_secret:ro
+      - ./uploads:/app/uploads
+      - ./config.json:/app/config.json
     
     # 健康检查
     healthcheck:
@@ -51,42 +34,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 5s
-    
-    # 依赖服务
-    depends_on:
-      - redis
-    
-    # 网络
-    networks:
-      - app-network
-
-  # Redis for session storage
-  redis:
-    image: redis:7-alpine
-    container_name: modern-images-redis
-    restart: unless-stopped
-    user: "0:0"
-    
-    # 资源限制
-    deploy:
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 128M
-        reservations:
-          cpus: '0.1'
-          memory: 32M
-    
-    # 数据持久化
-    volumes:
-      - redis_data:/data
-    
-    # 配置
-    command: redis-server --appendonly yes --maxmemory 64mb --maxmemory-policy allkeys-lru
-    
-    # 网络
-    networks:
-      - app-network
 
 # 网络配置
 networks:

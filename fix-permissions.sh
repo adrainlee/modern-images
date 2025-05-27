@@ -1,81 +1,64 @@
 #!/bin/bash
 
-# 停止正在运行的容器
-echo "停止现有容器..."
-docker compose down
+echo "=== Modern Images Permission Fix Script ==="
 
-# 创建必要的目录
-echo "创建必要的目录结构..."
-mkdir -p uploads/api
-
-# 检查当前用户和组
+# 获取当前用户和组ID
 CURRENT_USER=$(id -u)
 CURRENT_GROUP=$(id -g)
-echo "当前用户ID: $CURRENT_USER, 组ID: $CURRENT_GROUP"
 
-echo "注意: 不尝试修改权限，而是修改Docker配置以适应当前权限"
+echo "Current User ID: $CURRENT_USER"
+echo "Current Group ID: $CURRENT_GROUP"
 
-# 如果config.json不存在，从示例配置创建
-if [ ! -f config.json ]; then
-  echo "从示例配置创建config.json..."
-  cp config.sample.json config.json
-  echo "请注意: 您需要访问 http://localhost:3000/setup 进行初始设置"
-fi
-
-# 创建或修改docker-compose.yml，添加用户ID映射
-echo "更新docker-compose.yml文件..."
-cat > docker-compose.yml << EOF
-version: '3'
-
-services:
-  modern-images:
-    build: .
-    container_name: modern-images
-    restart: unless-stopped
-    ports:
-      - "3000:3000"
-    environment:
-      - NODE_ENV=production
-      - PORT=3000
-      - UID=$CURRENT_USER
-      - GID=$CURRENT_GROUP
-    volumes:
-      - ./uploads:/app/uploads
-      - ./config.json:/app/config.json
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "-", "http://localhost:3000/"]
-      interval: 30s
-      timeout: 3s
-      retries: 3
-      start_period: 5s
-EOF
-
-echo "修改docker-entrypoint.sh脚本..."
-cat > docker-entrypoint.sh << EOF
-#!/bin/sh
-set -e
+# 停止现有容器
+echo "Stopping existing containers..."
+docker compose down 2>/dev/null || true
 
 # 创建必要的目录
-mkdir -p /app/uploads/api
+echo "Creating necessary directories..."
+mkdir -p uploads/api
 
-# 如果提供了UID/GID环境变量，则使用它们
-if [ -n "\$UID" ] && [ -n "\$GID" ]; then
-  echo "使用提供的UID(\$UID)/GID(\$GID)运行应用"
-  # 修改node用户的UID/GID以匹配宿主机
-  sed -i -e "s/^node:x:[0-9]*:[0-9]*:/node:x:\$UID:\$GID:/" /etc/passwd
-  sed -i -e "s/^node:x:[0-9]*:/node:x:\$GID:/" /etc/group
-  # 修改目录所有权
-  chown -R node:node /app/uploads || true
+# 创建配置文件（如果不存在）
+if [ ! -f config.json ]; then
+    echo "Creating config.json from sample..."
+    if [ -f config.sample.json ]; then
+        cp config.sample.json config.json
+        echo "✓ Config file created"
+    else
+        echo "⚠ Warning: config.sample.json not found"
+    fi
 fi
 
-# 以node用户身份执行命令
-exec su-exec node "\$@"
+# 修复权限
+echo "Fixing file permissions..."
+chmod 755 uploads/
+chmod 755 uploads/api/ 2>/dev/null || true
+chmod 644 config.json 2>/dev/null || true
+
+# 创建或更新.env文件以传递用户ID
+echo "Creating .env file with user IDs..."
+cat > .env << EOF
+# User and Group IDs for Docker
+UID=$CURRENT_USER
+GID=$CURRENT_GROUP
 EOF
 
-# 确保脚本可执行
-chmod +x docker-entrypoint.sh
+echo "✓ Environment file created"
 
-echo "配置更新完成！"
-echo "现在请重新构建并启动容器："
-echo "docker compose build"
-echo "docker compose up -d" 
+# 显示使用说明
+echo ""
+echo "=== Setup Complete ==="
+echo "Now run the following commands:"
+echo ""
+echo "1. Build the image with correct user permissions:"
+echo "   docker compose build --no-cache"
+echo ""
+echo "2. Start the application:"
+echo "   docker compose up -d"
+echo ""
+echo "3. Check logs:"
+echo "   docker compose logs -f"
+echo ""
+echo "The application will be available at: http://localhost:3000"
+echo ""
+echo "If you still encounter permission issues, you can also try:"
+echo "   sudo chown -R $CURRENT_USER:$CURRENT_GROUP uploads config.json" 
