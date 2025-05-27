@@ -1,35 +1,46 @@
+# 单阶段构建，确保Sharp在正确的环境中编译
 FROM node:18-alpine
 
-# 安装sharp依赖的系统库和su-exec
-RUN apk add --no-cache python3 make g++ vips-dev su-exec shadow
+# 创建非特权用户
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001
 
-# 创建应用目录
+# 安装运行时依赖和构建工具
+RUN apk add --no-cache vips vips-dev su-exec dumb-init python3 make g++ && \
+    rm -rf /var/cache/apk/*
+
 WORKDIR /app
 
-# 复制package.json和package-lock.json（如果存在）
+# 复制package文件
 COPY package*.json ./
 
-# 安装依赖
-RUN npm install
+# 安装所有依赖（在正确的环境中）
+RUN npm ci --only=production && npm cache clean --force
 
-# 复制应用代码
+# 复制源代码
 COPY . .
 
-# 创建上传目录
-RUN mkdir -p uploads && \
-    chown -R node:node /app
+# 只清理构建工具，保留vips和vips-dev以支持Sharp运行
+RUN apk del python3 make g++
+
+# 创建必要目录
+RUN mkdir -p uploads/api && \
+    chown -R nodejs:nodejs /app
+
+# 复制启动脚本
+COPY --chown=nodejs:nodejs docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# 设置非root用户
+USER nodejs
 
 # 暴露端口
 EXPOSE 3000
 
-# 设置健康检查
-HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-  CMD wget -q -O - http://localhost:3000/ || exit 1
+# 健康检查
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
 
-# 创建启动脚本
-COPY docker-entrypoint.sh /usr/local/bin/
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
-
-# 启动应用
-ENTRYPOINT ["docker-entrypoint.sh"]
-CMD ["node", "server.js"] 
+# 使用dumb-init作为PID 1
+ENTRYPOINT ["/usr/bin/dumb-init", "--"]
+CMD ["/usr/local/bin/docker-entrypoint.sh", "node", "server.js"] 

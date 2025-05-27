@@ -1,18 +1,33 @@
 #!/bin/sh
 set -e
 
-# 创建必要的目录
+# 创建必要的目录（如果不存在）
 mkdir -p /app/uploads/api
 
-# 如果提供了UID/GID环境变量，则使用它们
-if [ -n "$UID" ] && [ -n "$GID" ]; then
-  echo "使用提供的UID($UID)/GID($GID)运行应用"
-  # 修改node用户的UID/GID以匹配宿主机
-  sed -i -e "s/^node:x:[0-9]*:[0-9]*:/node:x:$UID:$GID:/" /etc/passwd
-  sed -i -e "s/^node:x:[0-9]*:/node:x:$GID:/" /etc/group
-  # 修改目录所有权
-  chown -R node:node /app/uploads || true
+# 检查挂载点权限
+if [ ! -w "/app/uploads" ]; then
+  echo "警告: uploads目录不可写，请检查挂载点权限"
+  echo "建议在宿主机上运行: sudo chown -R $(id -u):$(id -g) uploads"
+  exit 1
 fi
 
-# 以node用户身份执行命令
-exec su-exec node "$@"
+# 检查配置文件
+if [ ! -f "/app/config.json" ]; then
+  echo "错误: 找不到config.json配置文件"
+  echo "请确保config.json文件存在并正确挂载"
+  exit 1
+fi
+
+# 验证Node.js环境
+if ! command -v node >/dev/null 2>&1; then
+  echo "错误: Node.js未安装"
+  exit 1
+fi
+
+echo "启动现代图床应用..."
+echo "用户: $(whoami)"
+echo "工作目录: $(pwd)"
+echo "Node.js版本: $(node --version)"
+
+# 执行传入的命令
+exec "$@" 

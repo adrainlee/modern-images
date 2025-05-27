@@ -4,7 +4,25 @@ const sharp = require('sharp');
 const fs = require('fs');
 const path = require('path');
 const session = require('express-session');
+const RedisStore = require('connect-redis').default;
+const redis = require('redis');
 const crypto = require('crypto'); // 用于生成唯一文件名
+
+// 创建Redis客户端
+const redisClient = redis.createClient({
+  url: process.env.REDIS_URL || 'redis://localhost:6379'
+});
+
+redisClient.on('error', (err) => {
+  console.error('Redis连接错误:', err);
+});
+
+redisClient.on('connect', () => {
+  console.log('Redis连接成功');
+});
+
+// 连接Redis
+redisClient.connect().catch(console.error);
 
 // 读取配置文件（登录凭据）
 const configPath = path.join(__dirname, 'config.json');
@@ -100,7 +118,8 @@ app.use(express.urlencoded({ extended: true }));
 app.use(session({
   secret: 'somesecret',
   resave: false,
-  saveUninitialized: false
+  saveUninitialized: false,
+  store: new RedisStore({ client: redisClient })
 }));
 
 // 检查是否需要初始配置的中间件
@@ -307,6 +326,11 @@ app.get('/logout', (req, res) => {
 // 受保护的首页（图床主页面）
 app.get('/', isAuthenticated, (req, res) => {
   res.sendFile(path.join(__dirname, 'views', 'index.html'));
+});
+
+// 健康检查端点
+app.get('/health', (req, res) => {
+  res.status(200).send('OK');
 });
 
 /* ---------------- API管理相关路由 ---------------- */
