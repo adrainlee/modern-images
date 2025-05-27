@@ -188,6 +188,12 @@ const upload = multer({
   }
 });
 
+// 支持多种字段名的上传配置（兼容PicGo等客户端）
+const uploadMultiField = upload.fields([
+  { name: 'images', maxCount: 10 },
+  { name: 'file', maxCount: 10 }
+]);
+
 // 确保目录存在的函数
 function ensureDirExistence(dir) {
   if (!fs.existsSync(dir)) {
@@ -516,10 +522,13 @@ app.post('/upload', isAuthenticated, upload.array('images'), async (req, res) =>
 /* ---------------- API上传接口 ---------------- */
 
 // API上传接口：处理图片上传，并将图片存储在api专用目录中
-app.post('/api/upload', apiAuthenticated, upload.array('images'), async (req, res) => {
+app.post('/api/upload', apiAuthenticated, uploadMultiField, async (req, res) => {
   try {
     // 优先使用请求中指定的格式，如果没有则使用默认格式设置
     const formatOption = req.query.format || config.api.defaultFormat || 'original';
+    
+    // 获取上传的文件，支持多种字段名
+    const files = (req.files && req.files.images) || (req.files && req.files.file) || [];
     
     let resultImages = [];
     // 获取年月日文件夹路径及基本 URL
@@ -529,8 +538,8 @@ app.post('/api/upload', apiAuthenticated, upload.array('images'), async (req, re
     const uploadTime = new Date();
     
     // 遍历每个上传文件，使用上传列表中的顺序生成三位数定位
-    for (let i = 0; i < req.files.length; i++) {
-      const file = req.files[i];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
       const orderIndex = (i + 1).toString().padStart(3, '0');
       const ext = path.extname(file.originalname).toLowerCase();
       let outputFormat = '';

@@ -206,10 +206,13 @@
                 <li><strong>上传地址</strong>: <code id="apiEndpoint"></code></li>
                 <li><strong>请求方式</strong>: POST</li>
                 <li><strong>自定义请求头</strong>: <code>x-api-token</code> 填入您的令牌</li>
-                <li><strong>图片上传字段名</strong>: images</li>
+                <li><strong>图片上传字段名</strong>: file（或 images）</li>
                 <li><strong>自定义URL部分</strong>: <code>picgo=true</code></li>
                 <li><strong>返回值字段</strong>: result</li>
               </ul>
+              <p style="margin-top: var(--spacing-sm); color: var(--text-secondary); font-size: 0.9em;">
+                <strong>注意</strong>：如果使用URL参数认证，请在上传地址后添加 <code>?token=您的令牌&picgo=true</code>
+              </p>
             </div>
 
             <h3 style="margin: var(--spacing-md) 0 var(--spacing-sm);">API端点</h3>
