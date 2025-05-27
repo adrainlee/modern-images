@@ -5,9 +5,22 @@ FROM node:18-alpine
 ARG UID=1000
 ARG GID=1000
 
-# 创建用户组和用户，使用传入的UID/GID
-RUN addgroup -g ${GID} -S nodejs && \
-    adduser -S nodejs -u ${UID} -G nodejs
+# 创建用户组和用户，处理已存在的情况
+RUN set -ex; \
+    # 尝试创建组，如果失败则使用现有组或创建新的
+    if ! addgroup -g ${GID} -S nodejs 2>/dev/null; then \
+        # 如果指定的GID已被使用，创建nodejs组（让系统分配GID）
+        if ! getent group nodejs >/dev/null 2>&1; then \
+            addgroup -S nodejs; \
+        fi; \
+    fi; \
+    # 尝试创建用户，如果失败则使用现有用户或创建新的
+    if ! adduser -S nodejs -u ${UID} -G nodejs 2>/dev/null; then \
+        # 如果指定的UID已被使用，创建nodejs用户（让系统分配UID）
+        if ! getent passwd nodejs >/dev/null 2>&1; then \
+            adduser -S nodejs -G nodejs; \
+        fi; \
+    fi
 
 # 安装运行时依赖和构建工具
 RUN apk add --no-cache vips vips-dev su-exec dumb-init python3 make g++ && \
