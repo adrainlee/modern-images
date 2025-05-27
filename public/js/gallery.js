@@ -414,22 +414,40 @@ document.addEventListener('DOMContentLoaded', () => {
       
       if (isGridView) {
         item.classList.add('gallery-item-grid');
-        // 使用空白图片占位，然后懒加载
+        // 使用空白图片占位，然后懒加载，添加删除按钮和预览区域
         item.innerHTML = `
-          <div class="gallery-img-container">
+          <div class="gallery-img-container gallery-preview-area">
             <div class="loading-placeholder"></div>
             <img class="gallery-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" 
                  data-src="${img.url}" alt="${img.filename}" loading="lazy" />
             <div class="filename">${img.filename}</div>
+            <button type="button" class="gallery-delete-btn" data-index="${index}" title="删除图片">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+              </svg>
+            </button>
           </div>
         `;
       } else {
         item.classList.add('gallery-item-list');
         item.innerHTML = `
-          <div class="gallery-img-container">
+          <div class="gallery-img-container gallery-preview-area">
             <div class="loading-placeholder"></div>
             <img class="gallery-img" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 1 1'%3E%3C/svg%3E" 
                  data-src="${img.url}" alt="${img.filename}" loading="lazy" />
+            <button type="button" class="gallery-delete-btn" data-index="${index}" title="删除图片">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"></path>
+                <path d="M10 11v6"></path>
+                <path d="M14 11v6"></path>
+                <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"></path>
+              </svg>
+            </button>
           </div>
           <div class="gallery-details">
             <div class="filename">${img.filename}</div>
@@ -441,8 +459,12 @@ document.addEventListener('DOMContentLoaded', () => {
         `;
       }
       
-      // 修复：改进点击事件处理，处理冒泡问题以修复Ctrl+点击选择
-      const handleGalleryItemClick = (e) => {
+      // 修改点击事件处理：普通点击选择，双击预览
+      const previewArea = item.querySelector('.gallery-preview-area');
+      const deleteBtn = item.querySelector('.gallery-delete-btn');
+      
+      // 单击事件处理 - 只选择图片
+      const handleSingleClick = (e) => {
         if (e.button !== 0) return; // 仅处理左键点击
         
         // 阻止事件冒泡
@@ -462,17 +484,69 @@ document.addEventListener('DOMContentLoaded', () => {
             selectItem(i);
           }
         } else {
-          // 普通点击：清除其他选择并打开图片
+          // 普通点击：清除所有选择，然后选中当前项
           clearAllSelections();
           selectItem(index);
           lastSelectedIndex = index;
-          currentImageIndex = index;
-          showImageModal(img);
         }
       };
       
-      // 直接绑定到整个item元素，确保点击任何区域都能被捕获
-      item.addEventListener('click', handleGalleryItemClick);
+      // 双击事件处理 - 打开预览
+      const handleDoubleClick = (e) => {
+        e.stopPropagation();
+        currentImageIndex = index;
+        showImageModal(img);
+      };
+      
+      // 删除按钮点击事件
+      const handleDeleteClick = async (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        
+        if (!confirm(`确定要删除图片 "${img.filename}" 吗？此操作不可恢复。`)) {
+          return;
+        }
+        
+        try {
+          // 准备删除数据
+          const imageToDelete = {
+            storage: img.storage,
+            path: img.path,
+            filename: img.filename
+          };
+          
+          const res = await fetch('/api/delete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ images: [imageToDelete] })
+          });
+          
+          const result = await res.json();
+          
+          if (result.success) {
+            showToast('图片删除成功', 'success');
+            loadGalleryPaged(); // 重新加载当前页
+            clearAllSelections(); // 清除选择
+          } else {
+            showToast('删除图片失败：' + (result.message || '未知错误'), 'error');
+          }
+        } catch (err) {
+          console.error('删除图片时出错：', err);
+          showToast('删除图片时发生错误', 'error');
+        }
+      };
+      
+      // 绑定事件
+      if (previewArea) {
+        previewArea.addEventListener('click', handleSingleClick);
+        previewArea.addEventListener('dblclick', handleDoubleClick);
+      }
+      
+      if (deleteBtn) {
+        deleteBtn.addEventListener('click', handleDeleteClick);
+      }
       
       // 右键点击处理：显示上下文菜单
       item.addEventListener('contextmenu', (e) => {
@@ -1032,28 +1106,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     
     try {
-      // 准备待删除的图片数据
-      const selectedImageIndices = selectedImages.map(item => parseInt(item.dataset.index));
-      
       // 确保window.galleryImages存在且有效
       if (!window.galleryImages || !Array.isArray(window.galleryImages)) {
         showToast('图片数据无效，请刷新页面', 'error');
         return;
       }
       
-      // 获取图片对象
-      const imagesToDelete = selectedImageIndices
-        .map(index => window.galleryImages[index])
-        .filter(img => img && img.storage && img.path); // 确保图片有必要的属性
+      // 直接从选中的DOM元素获取图片数据
+      const imagesToDelete = selectedImages.map(item => {
+        const index = parseInt(item.dataset.index);
+        const img = window.galleryImages[index];
+        
+        if (!img) {
+          console.warn('无法找到索引为', index, '的图片数据');
+          return null;
+        }
+        
+        // 确保图片有删除所需的必要属性
+        if (!img.storage || !img.path) {
+          console.warn('图片缺少必要的删除信息:', img);
+          return null;
+        }
+        
+        return {
+          storage: img.storage,
+          path: img.path,
+          filename: img.filename
+        };
+      }).filter(img => img !== null); // 过滤掉无效的图片
       
       if (imagesToDelete.length === 0) {
-        showToast('选中的图片无法删除', 'error');
+        showToast('选中的图片无法删除，缺少必要信息', 'error');
         return;
       }
       
-      console.log('准备删除图片:', imagesToDelete);
-      
-      // 发送正确的删除请求
+      // 发送删除请求
       const res = await fetch('/api/delete', {
         method: 'POST',
         headers: {
@@ -1065,7 +1152,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const result = await res.json();
       
       if (result.success) {
-        showToast('图片删除成功', 'success');
+        showToast(`成功删除 ${imagesToDelete.length} 张图片`, 'success');
         loadGalleryPaged(); // 重新加载当前页
         clearAllSelections(); // 清除选择
       } else {

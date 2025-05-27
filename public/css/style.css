@@ -1451,3 +1451,72 @@ a:hover {
     gap: var(--spacing-sm);
   }
 }
+
+/* 图片库项目删除按钮 */
+.gallery-delete-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  color: var(--gray-700);
+  border: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  transition: all 0.2s ease;
+  padding: 0;
+  opacity: 0;
+  transform: scale(0.8);
+  backdrop-filter: blur(4px);
+}
+
+.gallery-item:hover .gallery-delete-btn {
+  opacity: 1;
+  transform: scale(1);
+}
+
+.gallery-delete-btn:hover {
+  background: var(--accent-color);
+  color: white;
+  transform: scale(1.1);
+}
+
+/* 列表视图中的删除按钮特殊样式 */
+.gallery-item-list .gallery-delete-btn {
+  top: 5px;
+  right: 5px;
+  width: 24px;
+  height: 24px;
+}
+
+/* 图片预览区域样式 */
+.gallery-preview-area {
+  position: relative;
+  cursor: pointer;
+}
+
+.gallery-preview-area:hover::after {
+  content: '双击预览';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: rgba(0, 0, 0, 0.7);
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.gallery-item:hover .gallery-preview-area:hover::after {
+  opacity: 1;
+}
