@@ -10,10 +10,14 @@ services:
         - GID=${GID:-1000}
     container_name: modern-images
     restart: unless-stopped
+    depends_on:
+      - redis
     
     # 网络配置
     ports:
       - "3000:3000"
+    networks:
+      - app-network
     
     # 环境变量
     environment:
@@ -21,6 +25,7 @@ services:
       - PORT=3000
       - UID=${UID:-1000}
       - GID=${GID:-1000}
+      - REDIS_URL=redis://redis:6379
     
     # 卷挂载 - 使用绑定挂载以避免权限问题
     volumes:
@@ -30,6 +35,22 @@ services:
     # 健康检查
     healthcheck:
       test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 5s
+
+  redis:
+    image: redis:7-alpine
+    container_name: modern-images-redis
+    restart: unless-stopped
+    networks:
+      - app-network
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
       interval: 30s
       timeout: 10s
       retries: 3
