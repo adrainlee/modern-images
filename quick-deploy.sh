@@ -92,6 +92,9 @@ GID=$CURRENT_GROUP
 # Application Configuration
 NODE_ENV=production
 PORT=3000
+
+# Redis Configuration
+REDIS_URL=redis://redis:6379
 EOF
 
 print_success "Environment file created"
